@@ -3,12 +3,36 @@
 import nautobot.extras.forms as extras_forms
 import nautobot.utilities.forms as utilities_forms
 from django import forms
+from django.forms import HiddenInput
 from nautobot.circuits.models import Provider
 from nautobot.dcim.models import Device, Interface
+from nautobot.extras.forms import NautobotModelForm
 from nautobot.extras.models import Tag, Secret
 from nautobot.ipam.models import VRF, IPAddress
+from nautobot.utilities.forms import DynamicModelChoiceField
 
-from . import choices, models
+from . import choices, models, utils
+
+
+class ExpandableAutonomousSystemField(forms.CharField):
+    """A field which allows for expansion of ASN ranges.
+
+    Example: '420000000[1-9]' => ['4200000001', '4200000002', '4200000003' ... '4200000009']
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Specific help text."""
+        super().__init__(*args, **kwargs)
+        if not self.help_text:
+            self.help_text = (
+                "Specify a numeric range to create multiple ASNs.<br />Example: <code>420000000[1-9]</code>"
+            )
+
+    def to_python(self, value):
+        """Expand the pattern to a list."""
+        if "[" in value:
+            return list(utils.expand_as_pattern(value))
+        return [value]
 
 
 class AutonomousSystemForm(
@@ -40,6 +64,12 @@ class AutonomousSystemFilterForm(
 #     class Meta:
 #         model = models.AutonomousSystem
 #         fields = models.AutonomousSystem.csv_headers
+
+
+class AutonomousSystemBulkCreateForm(utilities_forms.BootstrapMixin, forms.Form):
+    """Form for the expandable AS pattern field."""
+
+    pattern = ExpandableAutonomousSystemField(label="ASN pattern")
 
 
 class AutonomousSystemBulkEditForm(
@@ -559,3 +589,22 @@ class AddressFamilyFilterForm(utilities_forms.BootstrapMixin, extras_forms.Custo
     )
 
     vrf = utilities_forms.DynamicModelMultipleChoiceField(queryset=VRF.objects.all(), required=False)
+
+
+class AutonomousSystemBulkAddForm(NautobotModelForm):
+    """Form for bulk-adding AutonomousSystem records."""
+
+    provider = DynamicModelChoiceField(
+        queryset=Provider.objects.all(),
+        required=False,
+    )
+
+    class Meta:
+        model = models.AutonomousSystem
+        fields = [
+            "asn",
+            "description",
+            "status",
+            "provider",
+        ]
+        widgets = {"asn": HiddenInput()}

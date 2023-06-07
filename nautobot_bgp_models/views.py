@@ -33,6 +33,7 @@ class AutonomousSystemEditView(generic.ObjectEditView):
 
     queryset = models.AutonomousSystem.objects.all()
     model_form = forms.AutonomousSystemForm
+    template_name = "nautobot_bgp_models/autonomoussystem_edit.html"
 
 
 class AutonomousSystemDeleteView(generic.ObjectDeleteView):
@@ -47,6 +48,16 @@ class AutonomousSystemDeleteView(generic.ObjectDeleteView):
 #     queryset = models.AutonomousSystem.objects.all()
 #     model_form = forms.AutonomousSystemCSVForm
 #     table = tables.AutonomousSystemTable
+
+
+class AutonomousSystemBulkCreateView(generic.BulkCreateView):
+    """View for bulk-creating AutonomousSystem records."""
+
+    queryset = models.AutonomousSystem.objects.all()
+    form = forms.AutonomousSystemBulkCreateForm
+    model_form = forms.AutonomousSystemBulkAddForm
+    pattern_target = "asn"
+    template_name = "nautobot_bgp_models/autonomoussystem_bulk_add.html"
 
 
 class AutonomousSystemBulkEditView(generic.BulkEditView):
